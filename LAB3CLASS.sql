@@ -139,3 +139,98 @@ GROUP BY HOADON.SOHD
 HAVING COUNT(DISTINCT SANPHAM.MASP) = (SELECT COUNT(*) 
                                  FROM SANPHAM 
                                  WHERE NUOCSX = 'Singapore')
+--Bai05--
+					
+
+--Cau 11--
+SELECT HoTen
+FROM GIAOVIEN, GIANGDAY
+WHERE GiaoVien.MaGV = GiangDay.MAGV
+AND MaLop = 'K11'
+AND HocKy = 1 AND Nam = 2006
+INTERSECT (SELECT HoTen FROM GiaoVien, GiangDay
+	   WHERE GiaoVien.MaGV = GiangDay.MaGV
+	   AND MaLop = 'K12' AND HocKy = 1 AND Nam = 2006)
+
+--Cau 12--
+SELECT HocVien.MaHV, (Ho+' '+Ten) HoTen
+FROM HocVien, KetQuaThi
+WHERE HocVien.MaHV = KetQuaThi.MaHV
+	AND MaMH = 'CSDL' AND LanThi = 1 AND KQua = 'Khong Dat'
+	AND NOT EXISTS (SELECT * FROM KetQuaThi WHERE LanThi > 1 AND KetQuaThi.MaHV = HocVien.MaHV)
+
+--Cau 13--
+SELECT MaGV, HoTen
+FROM GiaoVien
+WHERE MaGV NOT IN (SELECT MaGV FROM GiangDay)
+
+		--Cau 14--
+SELECT MaGV, HoTen
+FROM GiaoVien
+WHERE NOT EXISTS
+(
+	SELECT *
+	FROM MonHoc
+	WHERE MonHoc.MaKhoa = GiaoVien.MaKhoa
+	AND NOT EXISTS
+	(
+		SELECT *
+		FROM GiangDay
+		WHERE GiangDay.MaMH = MonHoc.MaMH
+		AND GiangDay.MaGV = GiaoVien.MaGV
+	)
+)
+
+--Cau 15--
+SELECT DISTINCT (Ho+' '+Ten) HoTen
+FROM HocVien, KetQuaThi
+WHERE HocVien.MaHV = KetQuaThi.MaHV
+	AND MaLop = 'K11'
+	AND ((LanThi = 2 AND Diem = 5)
+	OR HocVien.MaHV IN
+	(
+		SELECT DISTINCT MaHV
+		FROM KetQuaThi
+		WHERE KQua = 'Khong Dat'
+		GROUP BY MaHV, MaMH
+		HAVING COUNT(*) > 3	
+	)
+)
+
+		--Cau 16--
+SELECT HoTen
+FROM GiaoVien, GiangDay
+WHERE GiaoVien.MaGV = GiangDay.MaGV
+	AND MaMH = 'CTRR'
+GROUP BY GiaoVien.MaGV, HoTen, HocKy
+HAVING COUNT(*) >= 2
+
+--Cau 17--
+SELECT HocVien.*, Diem AS 'Diem thi CSDL sau cung'
+FROM HocVien, KetQuaThi
+WHERE HocVien.MaHV = KetQuaThi.MaHV
+	AND MaMH = 'CSDL'
+	AND LanThi = 
+	(
+		SELECT MAX(LanThi) 
+		FROM KetQuaThi 
+		WHERE MaMH = 'CSDL' AND KetQuaThi.MaHV = HocVien.MaHV 
+		GROUP BY MaHV
+	)
+
+--Cau 18--
+SELECT HocVien.*, Diem AS 'Diem thi cao nhat'
+FROM HocVien, KetQuaThi, MonHoc
+WHERE HocVien.MaHV = KetQuaThi.MaHV
+	AND KetQuaThi.MaMH = MonHoc.MaMH
+	AND TenMH = 'Co So Du Lieu'
+	AND Diem = 
+		(
+			SELECT MAX(Diem) 
+			FROM KetQuaThi, MonHoc
+			WHERE
+				KetQuaThi.MaMH = MonHoc.MaMH
+				AND MaHV = HocVien.MaHV
+				AND TenMH = 'Co So Du Lieu'
+			GROUP BY MaHV
+		)
